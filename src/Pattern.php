@@ -24,17 +24,6 @@ class Pattern
             $this->cache[$start] = $this->{$this->type}($text, $start);
         }
         return $this->cache[$start];
-        // return match($this->type) {
-        //     'literal' => $this->literal($text, $start),
-        //     'chain' => $this->chain($text, $start),
-        //     'oneOf' => $this->oneOf($text, $start),
-        //     'not' => $this->not($text, $start),
-        //     'anyChar' => $this->anyChar($text, $start),
-        //     'repeat' => $this->repeat($text, $start),
-        //     'capture' => $this->repeat($text, $start),
-        //     'named' => $this->repeat($text, $start),
-        //
-        // };
     }
 
     function literal($text, $start) {
