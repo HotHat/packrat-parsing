@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use Packrat\Grammar;
 use Packrat\Pattern;
 use PHPUnit\Framework\TestCase;
 
@@ -139,6 +140,34 @@ class TestFun extends TestCase
         // $this->assertTrue($m1->isSome());
 
     }
+
+    public function testGrammar() {
+        $grammar = new Grammar();
+        $grammar->AnyChar = named("AnyChar", literal("."));
+        $match = $grammar->AnyChar->match(".", 0);
+        var_dump($match);
+    }
+
+    public function testCSV3()
+    {
+        $grammar = new Grammar();
+        $grammar->Item = named('Item',
+            capture(
+                repeat(chain(not(literal(",")), not(literal("\n")), anyChar()))
+            )
+        );
+        $grammar->Line = named('Line',
+            chain($grammar->Item, repeat(chain(literal(","), $grammar->Item)))
+        );
+
+        $grammar->File = named('File',
+            chain($grammar->Line, repeat(chain(literal("\n"), $grammar->Line)))
+        );
+        $myFile = "1,2,3\n4,5,6";
+        $m1 = $grammar->File->match($myFile, 0); // new Match(...)
+        var_dump($m1);
+    }
+
 }
 
 //

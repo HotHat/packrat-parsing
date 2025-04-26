@@ -5,21 +5,27 @@ namespace Packrat;
 class Pattern
 {
     private array $cache = [];
+    private string $cacheStr = '';
     public function __construct(
         public readonly string $type,
         public readonly array  $patterns,
         public readonly string $name = '',
+        public  ?Grammar $grammar = null,
     )
     {
     }
 
     public function __invoke(string $text, int $start): Option
     {
-        return $this->{$this->type}($text, $start);
+        return $this->match($text, $start);
     }
 
     public function match($text, $start)
     {
+        if ($this->cacheStr !== $text) {
+            $this->cacheStr = $text;
+            $this->cache = [];
+        }
         if (!isset($this->cache[$start])) {
             $this->cache[$start] = $this->{$this->type}($text, $start);
         }
@@ -45,16 +51,15 @@ class Pattern
             $children[] = $result;
             $pos = $result->end;
         }
-        return Option::some(new Matcher($text, $start, $pos, $children, name: $this->name));
+        return Option::some(new Matcher($text, $start, $pos, name: $this->name));
     }
 
     function oneOf($text, $start) {
         foreach ($this->patterns as $pattern) {
             $opt = $pattern->match($text, $start);
             if ($opt->isSome()) {
-                $result = $opt->value();
-                $children = [$result];
-                return Option::some(new Matcher($text, $start, $opt->value()->end, $children, name: $this->name));
+                // $result = $opt->value();
+                return Option::some(new Matcher($text, $start, $opt->value()->end, name: $this->name));
             }
         }
         return Option::none();
@@ -62,11 +67,24 @@ class Pattern
 
     function repeat($text, $start)
     {
-        $a = new Pattern('chain', [...$this->patterns, new Pattern('repeat', $this->patterns)]);
-        $b = new Pattern('literal', [""]);
-        $c = new Pattern('oneOf', [$a, $b]);
+        $pattern = $this->patterns[0];
+        $firstMatch = false;
+        $pos = 0;
 
-        return $c->match($text, $start);
+        // repeat test
+        $match = $pattern->match($text, $start);
+        while ($match->isSome()) {
+            $pos = $match->value()->end;
+            $firstMatch = true;
+            $match = $pattern->match($text, $pos);
+        }
+
+        if ($firstMatch) {
+            return Option::some(new Matcher($text, $start, $pos, name: $this->name));
+        }
+
+        // zero
+        return Option::some(new Matcher($text, $start, $start, name: $this->name));
     }
 
     function not($text, $start) {
@@ -91,7 +109,7 @@ class Pattern
             $result = $opt->value();
             $captured = substr($text, $start, $result->end-$start);
             $match = new Matcher(
-                $text, $result->start, $result->end, [$result], captured: $captured, name: $this->name);
+                $text, $result->start, $result->end, captured: $captured, name: $this->name);
             return Option::some($match);
         }
 
@@ -100,11 +118,22 @@ class Pattern
 
     function named($text, $start)
     {
+        if ($this->grammar) {
+            $this->grammar->pushNamed();
+        }
         $opt = $this->patterns[0]($text, $start);
         if ($opt->isSome()) {
             $result = $opt->value();
             $match = new Matcher(
-                $text, $result->start, $result->end, [$result], name: $this->name);
+                $text,
+                $result->start,
+                $result->end,
+                [$result],
+                name: $this->name
+            );
+            if ($this->grammar) {
+                $this->grammar->addNamedMatch($match);
+            }
             return Option::some($match);
         }
 
