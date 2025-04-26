@@ -157,7 +157,7 @@ class TestFun extends TestCase
             )
         );
         $grammar->Line = named('Line',
-            chain($grammar->Item, repeat(chain(literal(","), $grammar->Item)))
+            chain($grammar->Item, repeat(chain(capture(literal(",")), $grammar->Item)))
         );
 
         $grammar->File = named('File',
@@ -165,7 +165,7 @@ class TestFun extends TestCase
         );
         $myFile = "1,2,3\n4,5,6";
         $m1 = $grammar->File->match($myFile, 0); // new Match(...)
-        var_dump($m1);
+         var_dump($m1);
     }
 
 }

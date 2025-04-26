@@ -110,6 +110,9 @@ class Pattern
             $captured = substr($text, $start, $result->end-$start);
             $match = new Matcher(
                 $text, $result->start, $result->end, captured: $captured, name: $this->name);
+            if ($this->grammar) {
+                $this->grammar->addMatch($match);
+            }
             return Option::some($match);
         }
 

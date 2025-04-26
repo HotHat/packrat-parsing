@@ -9,9 +9,22 @@ class Grammar
 
     public function __set($rule, $pattern)
     {
-        $newPattern = named($rule, $pattern);
-        $newPattern->grammar = $this;
-        $this->rules[$rule] = $newPattern;
+        // $newPattern = named($rule, $pattern);
+        // $newPattern->grammar = $this;
+        $this->markNamedAndCapture($pattern);
+        $this->rules[$rule] = $pattern;
+    }
+
+    public function markNamedAndCapture($pattern)
+    {
+        if ($pattern->type == 'named' || $pattern->type == 'capture') {
+            $pattern->grammar = $this;
+        }
+
+        foreach ($pattern->patterns as $child) {
+            $this->markNamedAndCapture($child);
+        }
+
     }
 
     public function __get($rule)
